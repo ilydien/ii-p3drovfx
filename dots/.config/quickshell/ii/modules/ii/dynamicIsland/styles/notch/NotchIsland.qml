@@ -1159,7 +1159,7 @@ Scope {
         if (root.hasTopBar && !root.centerInBar)
             top = Appearance.sizes.barHeight;
         else if (root.centerInBar)
-            top = root.barBodyInset;
+            top = root.barBodyInset + Appearance.sizes.barPillNudge + Appearance.sizes.barPillDrop;
         else if (root.usingWrappedFrame)
             top = Config.options.appearance.wrappedFrameThickness;
         return root.pillShape ? top + root.pillInset : top;
@@ -2359,7 +2359,7 @@ Scope {
                     if (!root.centerInBar && root.hasTopBar)
                         shown += Appearance.sizes.barHeight;
                     else if (root.centerInBar)
-                        shown += root.barBodyInset;
+                        shown += root.barBodyInset + Appearance.sizes.barPillNudge + Appearance.sizes.barPillDrop;
                     else if (root.usingWrappedFrame)
                         shown += Config.options.appearance.wrappedFrameThickness;
                     const away = -container.height - 10;

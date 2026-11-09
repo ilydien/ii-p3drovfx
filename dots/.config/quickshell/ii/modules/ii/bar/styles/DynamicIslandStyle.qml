@@ -17,6 +17,8 @@ import Qt5Compat.GraphicalEffects
 
 Item {
     id: root
+    readonly property real barDrop: Appearance.sizes.barPillDrop
+    y: BarPlacement.bottom ? -root.barDrop : root.barDrop
     focus: modeState._displayMode === "search"
 
     Keys.onPressed: event => {
@@ -138,8 +140,8 @@ Item {
     readonly property bool searchStable: modeState._displayMode === "search" && (searchWidgetLoader.item ? searchWidgetLoader.item.openStateStable : false)
     readonly property bool isSearchModeActive: (modeState._displayMode === "search") || searchWidgetLoader.visible || root.isSearchActiveHere
 
-    readonly property real verticalTopOffset: BarPlacement.bottom ? Math.max(0, (barBackground.height + root.frameThickness) - parent.height) : 0
-    readonly property real verticalBottomOffset: !BarPlacement.bottom ? Math.max(0, (barBackground.height + root.frameThickness) - parent.height) : 0
+    readonly property real verticalTopOffset: BarPlacement.bottom ? Math.max(0, (barBackground.height + root.frameThickness) - parent.height + root.barDrop) : 0
+    readonly property real verticalBottomOffset: !BarPlacement.bottom ? Math.max(0, (barBackground.height + root.frameThickness) - parent.height + root.barDrop) : 0
 
     IslandModeController {
         id: modeController
@@ -311,6 +313,7 @@ Item {
             width: root.islandInBarCenter ? implicitWidth : (parent.width - 10)
             height: parent.height
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: Appearance.sizes.barPillNudge
             spacing: 0
             opacity: (!modeState.notchModeEnabled || (modeState.expanded && modeState._displayMode !== "search") || (modeState._displayMode !== "" && modeState._displayMode !== "osd" && modeState._displayMode !== "notification" && modeState._displayMode !== "search")) ? 1.0 : 0.0
             visible: opacity > 0.01

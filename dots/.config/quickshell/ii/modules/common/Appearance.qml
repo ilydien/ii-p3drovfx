@@ -1151,6 +1151,10 @@ Singleton {
         property real fabShadowRadius: 5
         property real fabHoveredShadowRadius: 7
         property real hyprlandGapsOut: 5
+        // Geser turun pill bar & island di tengah bar. Hanya posisi, bukan ukuran.
+        property real barPillNudge: 0
+        // Geser turun seluruh bar Dynamic Island + island dari posisi aslinya.
+        property real barPillDrop: 14
         property real mediaControlsWidth: 440
         property real mediaControlsHeight: 160
         property real notificationPopupWidth: 410
