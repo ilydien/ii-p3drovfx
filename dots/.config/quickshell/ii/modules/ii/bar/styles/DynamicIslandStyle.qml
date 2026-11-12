@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Hyprland
 import qs
 import qs.services
 import qs.modules.common
@@ -73,13 +74,20 @@ Item {
     // resize vs mode resize).
     readonly property bool islandInBarCenter: IslandPolicy.centerInBar && BarInteraction.cornerStyle === 3
     readonly property real islandCenterGap: Appearance.sizes.hyprlandGapsOut
+    // The single island follows the focused monitor. A bar on any other screen has no
+    // island to reserve room for, so it keeps only its two side gaps and reads as one
+    // compact pill instead of a wide strip with a hole in the middle.
+    readonly property bool islandHere: !!root.screen && !!Hyprland.focusedMonitor
+        && root.screen.name === Hyprland.focusedMonitor.name
     // The island's own width closes when it hides, but its two side gaps stay: a hidden
     // island leaves the groups a small break in the middle instead of pressing them
     // together, and the gap never jumps at the end of the retract. Whole pixels; see
     // IslandGeometry.
     readonly property real islandReservedWidth: root.islandInBarCenter
-        ? Math.max(0, IslandGeometry.centerWidth + 2 * root.islandCenterGap)
+        ? Math.max(0, (root.islandHere ? IslandGeometry.centerWidth : 0) + 2 * root.islandCenterGap)
         : 0
+    readonly property real islandLeftExtra: root.islandHere ? IslandGeometry.leftExtra : 0
+    readonly property real islandRightExtra: root.islandHere ? IslandGeometry.rightExtra : 0
 
     // The island window is centred on screen, so the reserved gap has to be centred too.
     // The pill itself is content-sized and its two groups are rarely the same width, so
@@ -92,7 +100,7 @@ Item {
         const inset = Math.max(0, (barBackground.width - islandSections.width) / 2);
         // The island's centre inside the row: the left group, the left bubble's room
         // (which belongs entirely to the left half of the gap), then half the island.
-        const gapCentreInPill = inset + leftSectionLayout.width + IslandGeometry.leftExtra + root.islandReservedWidth / 2;
+        const gapCentreInPill = inset + leftSectionLayout.width + root.islandLeftExtra + root.islandReservedWidth / 2;
         const correction = (barBackground.width / 2) - gapCentreInPill;
         // Whole pixels only. Centre anchors already snap the centred position to a
         // pixel (`alignWhenCentered`) and then add this offset, so a fractional offset
@@ -391,7 +399,7 @@ Item {
                 Layout.preferredWidth: {
                     // The left half also makes room for the left auxiliary bubble.
                     if (root.islandInBarCenter)
-                        return root.islandReservedWidth / 2 + IslandGeometry.leftExtra;
+                        return root.islandReservedWidth / 2 + root.islandLeftExtra;
                     return (!modeState.notchModeEnabled || modeState.expanded) ? barBackground.islandSectionSpacing : 0;
                 }
                 visible: Layout.preferredWidth > 0
@@ -447,7 +455,7 @@ Item {
                 Layout.preferredWidth: {
                     // The right half also makes room for the auxiliary bubble.
                     if (root.islandInBarCenter)
-                        return root.islandReservedWidth / 2 + IslandGeometry.rightExtra;
+                        return root.islandReservedWidth / 2 + root.islandRightExtra;
                     return (!modeState.notchModeEnabled || modeState.expanded) ? barBackground.islandSectionSpacing : 0;
                 }
                 visible: Layout.preferredWidth > 0
