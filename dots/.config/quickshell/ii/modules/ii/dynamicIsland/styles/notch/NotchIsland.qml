@@ -33,6 +33,39 @@ import qs.modules.ii.overview
 Scope {
     id: root
 
+    /** The body's pop-in when the island appears on a monitor; see playMonitorAppear. */
+    property real appearScale: 1
+    property real appearOpacity: 1
+
+    ParallelAnimation {
+        id: monitorAppear
+
+        NumberAnimation {
+            target: root
+            property: "appearScale"
+            from: 0.94
+            to: 1
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "appearOpacity"
+            from: 0
+            to: 1
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    function playMonitorAppear() {
+        if (root.hidden)
+            return;
+        root.appearScale = 0.94;
+        root.appearOpacity = 0;
+        monitorAppear.restart();
+    }
+
     readonly property HyprlandMonitor hyprMonitor: Hyprland.monitorFor(win.screen)
 
     // ── What to show ─────────────────────────────────────────────────────────
@@ -1229,6 +1262,9 @@ Scope {
         return Quickshell.screens.find(s => s.name === pinned)
             ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
     }
+
+    onTargetScreenChanged: root.playMonitorAppear()
+
     Behavior on oledFade {
         NumberAnimation {
             duration: Appearance.animation.elementMove.duration
@@ -1673,6 +1709,7 @@ Scope {
     // A reload starts with the activities already present, which is no change at all.
     Component.onCompleted: {
         Qt.callLater(root.updateBubbles);
+        Qt.callLater(root.playMonitorAppear);
         GlobalStates.islandWindow = win;
     }
     Component.onDestruction: {
@@ -2235,7 +2272,7 @@ Scope {
 
             anchors.horizontalCenter: parent.horizontalCenter
             // Opacity keeps input, so the faded island still answers hover.
-            opacity: root.oledFade
+            opacity: root.oledFade * root.appearOpacity
 
             /**
              * The sculpted island is its S, not its bounding box.
@@ -2270,6 +2307,16 @@ Scope {
              * exactly the animation it has always been.
              */
             transformOrigin: Item.Top
+
+            // The pop-in lives on the body, not on the full-screen layer: scaling the
+            // layer made the visible pill look like it was shaking. Top-centred keeps
+            // the island's top edge anchored while the body grows into place.
+            transform: Scale {
+                origin.x: container.width / 2
+                origin.y: 0
+                xScale: root.appearScale
+                yScale: root.appearScale
+            }
 
             NumberAnimation {
                 id: holdSwell
