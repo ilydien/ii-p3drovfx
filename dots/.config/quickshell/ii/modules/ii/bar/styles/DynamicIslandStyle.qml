@@ -79,15 +79,27 @@ Item {
     // compact pill instead of a wide strip with a hole in the middle.
     readonly property bool islandHere: !!root.screen && !!Hyprland.focusedMonitor
         && root.screen.name === Hyprland.focusedMonitor.name
+    // The island's room in the bar, animated when focus moves between monitors: the
+    // old bar closes the gap while the new one opens it. Deliberately a separate
+    // presence value rather than a Behavior on the live island width - the island is
+    // already animating its own size, and chasing that is what made the old pill lag.
+    property real islandPresence: (root.islandInBarCenter && root.islandHere) ? 1 : 0
+    Behavior on islandPresence {
+        enabled: root.islandInBarCenter
+        NumberAnimation {
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.OutCubic
+        }
+    }
     // The island's own width closes when it hides, but its two side gaps stay: a hidden
     // island leaves the groups a small break in the middle instead of pressing them
     // together, and the gap never jumps at the end of the retract. Whole pixels; see
     // IslandGeometry.
     readonly property real islandReservedWidth: root.islandInBarCenter
-        ? Math.max(0, (root.islandHere ? IslandGeometry.centerWidth : 0) + 2 * root.islandCenterGap)
+        ? Math.max(0, IslandGeometry.centerWidth * root.islandPresence + 2 * root.islandCenterGap)
         : 0
-    readonly property real islandLeftExtra: root.islandHere ? IslandGeometry.leftExtra : 0
-    readonly property real islandRightExtra: root.islandHere ? IslandGeometry.rightExtra : 0
+    readonly property real islandLeftExtra: IslandGeometry.leftExtra * root.islandPresence
+    readonly property real islandRightExtra: IslandGeometry.rightExtra * root.islandPresence
 
     // The island window is centred on screen, so the reserved gap has to be centred too.
     // The pill itself is content-sized and its two groups are rarely the same width, so
