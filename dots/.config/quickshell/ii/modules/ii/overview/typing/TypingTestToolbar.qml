@@ -11,8 +11,9 @@ import qs.services
  * presets for the selected mode, with the panel's own settings and history
  * entries kept apart on the right so the mode controls stay centred.
  *
- * The whole row de-emphasises while a test runs — the words are the hero and
- * changing a parameter mid-test is not allowed anyway.
+ * The whole row fades away while a test runs — the words are the hero and
+ * changing a parameter mid-test is not allowed anyway. The flexible spacer
+ * above the stage absorbs the freed height, so the words never jump.
  */
 Item {
     id: root
@@ -25,6 +26,7 @@ Item {
     property bool historyOpen: false
     property bool statsOpen: false
     readonly property bool controlsEnabled: root.engine?.state !== "running"
+    readonly property bool testRunning: root.engine?.state === "running"
 
     signal requestMode(string mode)
     signal requestZenGuided(bool guided)
@@ -47,7 +49,9 @@ Item {
     readonly property bool compactLabels: root.width < 460
 
     implicitHeight: controls.implicitHeight
-    opacity: root.engine?.state === "running" ? 0.4 : 1
+    opacity: root.testRunning ? 0 : 1
+    // Once the fade has finished, drop the row from the layout entirely.
+    visible: !root.testRunning || opacity > 0.001
 
     Behavior on opacity {
         enabled: !root.animationsDisabled
