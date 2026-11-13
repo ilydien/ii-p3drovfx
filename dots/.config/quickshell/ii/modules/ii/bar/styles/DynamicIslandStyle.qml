@@ -5,7 +5,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Hyprland
 import qs
 import qs.services
 import qs.modules.common
@@ -77,8 +76,8 @@ Item {
     // The single island follows the focused monitor. A bar on any other screen has no
     // island to reserve room for, so it keeps only its two side gaps and reads as one
     // compact pill instead of a wide strip with a hole in the middle.
-    readonly property bool islandHere: !!root.screen && !!Hyprland.focusedMonitor
-        && root.screen.name === Hyprland.focusedMonitor.name
+    readonly property bool islandHere: !!root.screen
+        && IslandGeometry.screenName === root.screen.name
     // The island's room in the bar, animated when focus moves between monitors: the
     // old bar closes the gap while the new one opens it. Deliberately a separate
     // presence value rather than a Behavior on the live island width - the island is

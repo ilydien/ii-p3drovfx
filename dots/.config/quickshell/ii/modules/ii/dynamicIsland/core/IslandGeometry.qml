@@ -28,6 +28,13 @@ Singleton {
     property real centerWidth: 0
     property real centerHeight: 0
 
+    /**
+     * The screen the island is actually drawn on. The bar uses this rather than the
+     * focused monitor so its gap stays open while the island pops out of the old
+     * screen, then closes when the island really moves.
+     */
+    property string screenName: ""
+
     /** 0..1 while an auto-hiding island retracts; the bar closes its side gaps with it. */
     property real reveal: 1
 

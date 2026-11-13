@@ -33,17 +33,61 @@ import qs.modules.ii.overview
 Scope {
     id: root
 
-    /** The body's pop-in when the island appears on a monitor; see playMonitorAppear. */
+    /** The body's pop while the island moves between monitors. */
     property real appearScale: 1
     property real appearOpacity: 1
 
+    /** The focused (or pinned) screen the island wants to be on. */
+    readonly property var desiredScreen: {
+        if (!Config.options.bar.floatingNotch.onlyShowOnSingleMonitor) {
+            const focused = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "";
+            return Quickshell.screens.find(s => s.name === focused)
+                ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        }
+        const pinned = Config.options.bar.floatingNotch.singleMonitorName;
+        return Quickshell.screens.find(s => s.name === pinned)
+            ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+    }
+
+    /** The screen the window is actually on; null until the first completion. */
+    property var islandScreen: null
+    /** Where to go after the outgoing pop, if focus moved again meanwhile. */
+    property var pendingScreen: null
+    property bool screenLeaving: false
+    property bool screenEntering: false
+
+    /**
+     * The screen the island is drawn on. The window keeps its old screen until the
+     * outgoing pop has finished, so the out animation is actually seen.
+     */
+    readonly property var targetScreen: root.islandScreen
+
     ParallelAnimation {
-        id: monitorAppear
+        id: leaveAnim
 
         NumberAnimation {
             target: root
             property: "appearScale"
-            from: 0.94
+            to: 0.94
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.InCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "appearOpacity"
+            to: 0
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Easing.InCubic
+        }
+        onFinished: root.finishScreenLeave()
+    }
+
+    ParallelAnimation {
+        id: enterAnim
+
+        NumberAnimation {
+            target: root
+            property: "appearScale"
             to: 1
             duration: Appearance.animation.elementMoveFast.duration
             easing.type: Easing.OutCubic
@@ -51,19 +95,115 @@ Scope {
         NumberAnimation {
             target: root
             property: "appearOpacity"
-            from: 0
             to: 1
             duration: Appearance.animation.elementMoveFast.duration
             easing.type: Easing.OutCubic
         }
+        onFinished: root.finishScreenEnter()
+    }
+
+    // The new surface needs a beat to configure before it can pop in; without it the
+    // first frames of the pop are lost in the recreate.
+    Timer {
+        id: enterDelay
+        interval: 60
+        repeat: false
+        onTriggered: {
+            root.screenEntering = true;
+            enterAnim.restart();
+        }
     }
 
     function playMonitorAppear() {
-        if (root.hidden)
+        if (root.hidden) {
+            root.appearScale = 1;
+            root.appearOpacity = 1;
             return;
+        }
         root.appearScale = 0.94;
         root.appearOpacity = 0;
-        monitorAppear.restart();
+        enterAnim.restart();
+    }
+
+    function beginScreenLeave() {
+        enterDelay.stop();
+        enterAnim.stop();
+        root.screenEntering = false;
+        root.screenLeaving = true;
+        root.appearScale = 1;
+        root.appearOpacity = 1;
+        leaveAnim.restart();
+    }
+
+    function finishScreenLeave() {
+        root.screenLeaving = false;
+        const next = root.pendingScreen ?? root.desiredScreen;
+        root.pendingScreen = null;
+        if (!next) {
+            root.playMonitorAppear();
+            return;
+        }
+        // Focus came back while leaving: stay where the island already is.
+        if (root.islandScreen && next.name === root.islandScreen.name) {
+            root.playMonitorAppear();
+            return;
+        }
+        root.islandScreen = next;
+        root.appearScale = 0.94;
+        root.appearOpacity = 0;
+        if (root.hidden) {
+            enterDelay.stop();
+            enterAnim.stop();
+            root.appearScale = 1;
+            root.appearOpacity = 1;
+            root.screenEntering = false;
+            return;
+        }
+        enterDelay.restart();
+    }
+
+    function finishScreenEnter() {
+        root.screenEntering = false;
+        if (root.desiredScreen && root.islandScreen
+                && root.desiredScreen.name !== root.islandScreen.name) {
+            root.evaluateScreenSwitch();
+        }
+    }
+
+    function evaluateScreenSwitch() {
+        if (!root.islandScreen) {
+            root.islandScreen = root.desiredScreen;
+            root.playMonitorAppear();
+            return;
+        }
+        if (root.desiredScreen && root.desiredScreen.name === root.islandScreen.name) {
+            root.pendingScreen = null;
+            if (root.screenLeaving) {
+                root.screenLeaving = false;
+                leaveAnim.stop();
+                root.playMonitorAppear();
+            }
+            return;
+        }
+        root.pendingScreen = root.desiredScreen;
+        if (root.screenLeaving || root.screenEntering)
+            return;
+        if (root.hidden) {
+            root.finishScreenLeave();
+            return;
+        }
+        root.beginScreenLeave();
+    }
+
+    onDesiredScreenChanged: root.evaluateScreenSwitch()
+
+    // The bar opens its gap for the screen the island is really on. It stays open
+    // while the island pops out of the old monitor, then moves with the island.
+    Binding {
+        target: IslandGeometry
+        property: "screenName"
+        value: root.targetScreen ? root.targetScreen.name : ""
+        restoreMode: Binding.RestoreBindingOrValue
     }
 
     readonly property HyprlandMonitor hyprMonitor: Hyprland.monitorFor(win.screen)
@@ -1251,19 +1391,8 @@ Scope {
     readonly property bool oledSaverHere: !!root.targetScreen
         && (GlobalStates.oledSaverMonitors ?? []).includes(root.targetScreen.name)
     property real oledFade: root.oledSaverHere ? 0 : 1
-    // The screen the island lives on: the focused one, or the pinned one.
-    readonly property var targetScreen: {
-        if (!Config.options.bar.floatingNotch.onlyShowOnSingleMonitor) {
-            const focused = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "";
-            return Quickshell.screens.find(s => s.name === focused)
-                ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
-        }
-        const pinned = Config.options.bar.floatingNotch.singleMonitorName;
-        return Quickshell.screens.find(s => s.name === pinned)
-            ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
-    }
-
-    onTargetScreenChanged: root.playMonitorAppear()
+    // targetScreen/desiredScreen live at the top: the window keeps its old screen
+    // until the outgoing pop has finished.
 
     Behavior on oledFade {
         NumberAnimation {
@@ -1709,6 +1838,7 @@ Scope {
     // A reload starts with the activities already present, which is no change at all.
     Component.onCompleted: {
         Qt.callLater(root.updateBubbles);
+        root.islandScreen = root.desiredScreen;
         Qt.callLater(root.playMonitorAppear);
         GlobalStates.islandWindow = win;
     }
@@ -1838,7 +1968,21 @@ Scope {
     // the island hides runs through `shown`, which the hidden island has already
     // taken away. Without this, `expandedBubbleId` outlives the card it belongs to
     // and vetoes every later retraction (`hidden` demands it be "").
-    onHiddenChanged: if (root.hidden) root.expandedBubbleId = ""
+    onHiddenChanged: {
+        if (root.hidden)
+            root.expandedBubbleId = "";
+        if (root.hidden && root.screenLeaving) {
+            leaveAnim.stop();
+            root.finishScreenLeave();
+        }
+        if (root.hidden && root.screenEntering) {
+            enterDelay.stop();
+            enterAnim.stop();
+            root.screenEntering = false;
+            root.appearScale = 1;
+            root.appearOpacity = 1;
+        }
+    }
 
     // ── What the bubbles report back ─────────────────────────────────────────
     // Each slot answers through a signal and the island keeps the aggregate: one
