@@ -98,9 +98,9 @@ class TypingTestContractTests(unittest.TestCase):
         # Four desktop groups collapse to rows as the available width falls.
         self.assertIn("readonly property int controlColumns", toolbar)
         self.assertIn("columns: root.controlColumns", toolbar)
-        # The long shortcut strip has to receive the complete footer width and
-        # wrap individual hints rather than extend beyond the right edge.
-        self.assertIn("KeyHintBar {\n                Layout.fillWidth: true", footer)
+        # The typing page intentionally omits the launcher's shortcut strip;
+        # the shared KeyHintBar still wraps hints in the Overview host.
+        self.assertNotIn("KeyHintBar {", footer)
         self.assertIn("Flow {", hint_bar)
         self.assertIn("implicitHeight: hintFlow.implicitHeight", hint_bar)
 

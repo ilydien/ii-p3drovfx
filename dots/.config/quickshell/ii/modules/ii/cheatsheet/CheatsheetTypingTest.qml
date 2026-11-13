@@ -13,8 +13,7 @@ import qs.services
  * The test itself is TypingTestSurface — the exact component the Overview
  * search panel hosts — so the two are the same test rather than two copies of
  * it. This page only supplies the frame: the same margins the launcher gives
- * it, the same key hint bar, and the focus and Escape wiring the cheatsheet
- * expects from a page.
+ * it, and the focus and Escape wiring the cheatsheet expects from a page.
  */
 Item {
     id: root
@@ -58,16 +57,12 @@ Item {
             Layout.fillHeight: true
         }
 
-        // Mirrors SearchPanelScaffold's footer so the page reads identically
-        // to the launcher panel under the same settings.
+        // The page keeps the status line but deliberately omits the launcher's
+        // shortcut strip: the typing surface is meant to be distraction-free.
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Appearance.sizes.elevationMargin / 2
             visible: surface.statusText.length > 0
-                // Same reasoning as SearchPanelScaffold.showKeyHintFooter: a shortcut strip
-                // is instructions for hardware a touch-first family does not assume exists.
-                || (Config.options.search.appearance.showKeyHintBar && !PanelFamily.touchFirst
-                    && (surface.hints.length > 0 || Object.keys(surface.primaryHint).length > 0))
 
             StyledText {
                 Layout.fillWidth: true
@@ -76,16 +71,6 @@ Item {
                 elide: Text.ElideRight
                 color: Appearance.colors.colOnSurfaceVariant
                 font.pixelSize: Appearance.font.pixelSize.small
-            }
-
-            KeyHintBar {
-                Layout.fillWidth: true
-                visible: Config.options.search.appearance.showKeyHintBar && !PanelFamily.touchFirst
-                hints: surface.primaryHint.label
-                    ? [surface.primaryHint].concat(surface.hints) : surface.hints
-                showKeys: Config.options.search.appearance.showKeyHints
-                surface: Appearance.colors.colSurfaceContainerHigh
-                onSurface: Appearance.colors.colOnSurface
             }
         }
     }
