@@ -201,12 +201,7 @@ ContentPage {
                 currentValue: Config.options.search.typingTest.language
                 options: [
                     { displayName: Translation.tr("English"), value: "english_1k" },
-                    { displayName: Translation.tr("Português"), value: "portuguese" },
-                    { displayName: Translation.tr("Español"), value: "spanish" },
-                    { displayName: Translation.tr("Français"), value: "french" },
-                    { displayName: Translation.tr("Deutsch"), value: "german" },
-                    { displayName: Translation.tr("Italiano"), value: "italian" },
-                    { displayName: Translation.tr("Русский"), value: "russian" }
+                    { displayName: Translation.tr("Bahasa Indonesia"), value: "indonesian_1k" }
                 ]
                 onSelected: value => Config.options.search.typingTest.language = value
             }

@@ -308,7 +308,7 @@ class TypingTestContractTests(unittest.TestCase):
         manifest = json.loads((assets / "languages-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source"], "monkeytypegame/monkeytype")
         self.assertEqual(manifest["license"], "GPL-3.0-only")
-        self.assertEqual(len(manifest["languages"]), 7)
+        self.assertEqual(len(manifest["languages"]), 4)
         for language in manifest["languages"]:
             pack_path = assets / language["file"]
             self.assertTrue(pack_path.is_file(), language["id"])

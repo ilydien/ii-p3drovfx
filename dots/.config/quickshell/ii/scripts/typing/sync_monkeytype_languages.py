@@ -21,19 +21,16 @@ UPSTREAM = "https://raw.githubusercontent.com/monkeytypegame/monkeytype"
 LICENSE = "GPL-3.0-only"
 # (id, label, upstream file, bcp47, rightToLeft, joiningScript)
 #
-# Every entry vendors upstream's 1k list. The base packs are only ~200 words,
-# which made every language but English run out of variety long before a
-# 120-second test did. The ids stay as they are even where the upstream file
-# gained a `_1k` suffix: they are what `search.typingTest.language` and the
-# personal-best keys are stored under, so renaming one would orphan records.
+# English keeps its curated 1k list plus the full 10k set, and Indonesian ships
+# the same two sizes: Standard (~1k) and Extended (~10k). The upstream ids are
+# kept where they already exist, because `search.typingTest.language` and the
+# personal-best keys are stored under them. Other languages are deliberately
+# not vendored in this fork.
 LANGUAGES = (
     ("english_1k", "English", "english_1k.json", "en", False, False),
-    ("portuguese", "Português", "portuguese_1k.json", "pt", False, False),
-    ("spanish", "Español", "spanish_1k.json", "es", False, False),
-    ("french", "Français", "french_1k.json", "fr", False, False),
-    ("german", "Deutsch", "german_1k.json", "de", False, False),
-    ("italian", "Italiano", "italian_1k.json", "it", False, False),
-    ("russian", "Русский", "russian_1k.json", "ru", False, False),
+    ("english_1k_extended", "English", "english_10k.json", "en", False, False),
+    ("indonesian_1k", "Bahasa Indonesia", "indonesian_1k.json", "id", False, False),
+    ("indonesian_1k_extended", "Bahasa Indonesia", "indonesian_10k.json", "id", False, False),
 )
 
 # A pack thinner than this is a sign the upstream file moved or was truncated.
@@ -89,7 +86,7 @@ def main() -> int:
         words = validate_pack(payload, language_id)
         normalized = {
             "name": str(payload.get("name") or label),
-            "bcp47": str(payload.get("bcp47") or bcp47),
+            "bcp47": bcp47 or str(payload.get("bcp47") or ""),
             "rightToLeft": bool(payload.get("rightToLeft", rtl)),
             "joiningScript": bool(payload.get("joiningScript", joining)),
             "orderedByFrequency": bool(payload.get("orderedByFrequency", False)),
