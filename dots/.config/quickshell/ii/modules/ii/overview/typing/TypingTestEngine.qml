@@ -160,7 +160,9 @@ QtObject {
         x ^= x >>> 17;
         x ^= x << 5;
         root._randomState = x >>> 0;
-        return root._randomState / 4294967296;
+        // `_randomState` is a 32-bit int, so a state above 2^31 reads back
+        // negative. Divide the unsigned value, or half the draws clamp to 0.
+        return (x >>> 0) / 4294967296;
     }
 
     function randomIndex(length) {
@@ -182,13 +184,21 @@ QtObject {
         const source = Array.from(root.languagePack?.words ?? []);
         if (source.length === 0)
             return [];
+        // Immediate repeats are only the most obvious case; a small recent
+        // window keeps common words from clustering without preventing the
+        // natural repetition of a language.
+        const recentWindow = Math.min(16, Math.floor(source.length / 2));
+        const recent = startIndex > 0
+            ? root.targetWords.slice(Math.max(0, root.targetWords.length - recentWindow))
+            : [];
         const generated = [];
-        let previous = "";
         for (let index = 0; index < wordCount; index++) {
             let word = source[root.randomIndex(source.length)];
-            if (source.length > 1 && word === previous)
-                word = source[(root.randomIndex(source.length - 1) + 1) % source.length];
-            previous = word;
+            for (let attempt = 0; attempt < 8 && recent.includes(word); attempt++)
+                word = source[root.randomIndex(source.length)];
+            recent.push(word);
+            if (recent.length > recentWindow)
+                recent.shift();
             generated.push(root.decorateWord(word, startIndex + index));
         }
         return generated;

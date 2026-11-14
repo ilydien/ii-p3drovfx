@@ -359,7 +359,16 @@ Item {
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: stageColumn.implicitHeight
-                visible: !engine.isFinished
+                opacity: engine.isFinished ? 0 : 1
+
+                Behavior on opacity {
+                    enabled: !root.animationsDisabled
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
 
                 ColumnLayout {
                     id: stageColumn
@@ -483,17 +492,6 @@ Item {
                 }
             }
 
-            // ── Result ────────────────────────────────────────────
-            TypingResults {
-                Layout.fillWidth: true
-                Layout.preferredHeight: stageColumn.implicitHeight + Appearance.sizes.elevationMargin * 4
-                visible: engine.isFinished
-                engine: engine
-                personalBest: root.personalBest
-                onRestart: root.restart(false)
-                onRepeat: root.restart(true)
-            }
-
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -504,7 +502,7 @@ Item {
                 id: keyboard
                 Layout.alignment: Qt.AlignHCenter
                 Layout.bottomMargin: Appearance.sizes.elevationMargin
-                visible: root.options.keyboard.enable && !engine.isFinished && root.keyboardFits
+                visible: root.options.keyboard.enable && root.keyboardFits
                 // A split board is wider than the three rows it replaces, so it
                 // needs to know what it may take before it decides its scale.
                 maxWidth: stageColumn.width
@@ -513,14 +511,25 @@ Item {
                 maxHeight: root.keyboardHeightBudget
                 nextChar: engine.nextExpectedChar.toLowerCase()
                 onRequestInputFocus: root.focusInput()
-                opacity: engine.isRunning && !keyboard.fingerGuide ? 0.85 : 1
+                opacity: engine.isFinished
+                    ? 0
+                    : (engine.isRunning && !keyboard.fingerGuide ? 0.85 : 1)
+
+                Behavior on opacity {
+                    enabled: !root.animationsDisabled
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
             }
 
             RippleButton {
                 id: restartButton
                 Layout.alignment: Qt.AlignHCenter
                 Layout.bottomMargin: Appearance.sizes.elevationMargin / 2
-                visible: !engine.isFinished
+                opacity: engine.isFinished ? 0 : 1
                 implicitWidth: root.restartArmed ? armedContent.implicitWidth + 28 : 40
                 implicitHeight: 40
                 buttonRadius: Appearance.rounding.full
@@ -530,6 +539,15 @@ Item {
                 colRipple: root.restartArmed
                     ? Appearance.colors.colPrimaryContainerActive : Appearance.colors.colSurfaceContainerHighestActive
                 onClicked: root.restart(false)
+
+                Behavior on opacity {
+                    enabled: !root.animationsDisabled
+                    NumberAnimation {
+                        duration: Appearance.animation.elementMoveFast.duration
+                        easing.type: Appearance.animation.elementMoveFast.type
+                        easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                    }
+                }
 
                 Behavior on implicitWidth {
                     enabled: !root.animationsDisabled
@@ -561,6 +579,43 @@ Item {
                 }
 
                 StyledToolTip { text: Translation.tr("Restart (Ctrl+R, or Tab then Enter)") }
+            }
+        }
+
+        // A separate layer above the test, so the result can fade in while the
+        // stage, keyboard and restart control fade out underneath. The test
+        // layout keeps its height the whole time, which is what stops the
+        // words from jumping when the test ends.
+        Item {
+            id: resultOverlay
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: testToolbar.visible ? testToolbar.height : 0
+            z: 2
+            opacity: engine.isFinished ? 1 : 0
+            visible: root.page === "test" && (engine.isFinished || opacity > 0.001)
+            enabled: opacity > 0.001
+
+            Behavior on opacity {
+                enabled: !root.animationsDisabled
+                NumberAnimation {
+                    duration: Appearance.animation.elementMoveFast.duration
+                    easing.type: Appearance.animation.elementMoveFast.type
+                    easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                }
+            }
+
+            TypingResults {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                height: stageColumn.implicitHeight + Appearance.sizes.elevationMargin * 4
+                engine: engine
+                personalBest: root.personalBest
+                onRestart: root.restart(false)
+                onRepeat: root.restart(true)
             }
         }
 

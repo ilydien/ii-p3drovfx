@@ -243,6 +243,13 @@ class TypingTestContractTests(unittest.TestCase):
         for layout in ("qwerty", "qwertz", "azerty", "dvorak", "colemak"):
             self.assertIn(f"{layout}: [", layouts)
 
+    def test_word_randomizer_is_unsigned_and_avoids_recent_repeats(self) -> None:
+        engine = source("modules/ii/overview/typing/TypingTestEngine.qml")
+        # `_randomState` is a QML int; dividing it while signed makes every
+        # high-bit value negative, and randomIndex clamps those to word zero.
+        self.assertIn("return (x >>> 0) / 4294967296", engine)
+        self.assertIn("const recentWindow = Math.min(16", engine)
+
     def test_vendored_sounds_are_attributed_and_checksummed(self) -> None:
         assets = ROOT / "assets" / "typing"
         manifest = json.loads((assets / "sounds-manifest.json").read_text(encoding="utf-8"))
